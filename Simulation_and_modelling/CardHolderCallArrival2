@@ -1,0 +1,28 @@
+public class CardHolderCallArrival extends ScheduledAction {
+	
+	    SMTravel model; 	// Access to the SMTravel model
+	    
+	    // Constructor 
+	    CardHolderCallArrival(SMTravel model) { this.model = model;}
+
+	    @Override
+	    public double timeSequence() {
+	        return (model.rvp.DuCallCrd());
+	    }
+      
+      protected void actionEvent() {
+        // Arrival Action Sequence SCS
+         model.output.numCallReceivedCardholder++;
+         if(model.udp.callReceived(Constants.CARDHOLDER)) {
+            Call icCall = new Call();
+            icCall.uCuType = model.rvp.uCuType();
+            icCall.uCaType = model.rvp.uCaType();
+            icCall.uToleratedWaitTime = model.rvp.uWaitTmTolerance(icCall.uCuType);
+            CallHangUp hgUp = new CallHangUp(model, icCall);
+            model.scheduleAction(hgUp);
+            InputMemberNumber cardAct = new InputMemberNumber(model, icCall);
+            model.spStart(cardAct);
+        }
+    }
+}
+         

@@ -1,0 +1,88 @@
+package SMTravelSimulation;
+import simulationModelling.ExtSequelActivity;
+
+/*
+ * Extended Sequel Activity EstimateWaitTime
+ */
+public class EstimateWaitTime extends ExtSequelActivity{
+	
+	SMTravel model;
+	private Call icCall;
+
+	
+	 // Constructor
+	EstimateWaitTime(SMTravel model, Call icCall){
+		this.model = model;
+		this.icCall = icCall;	
+	}
+	EstimateWaitTime(SMTravel model){} //created this for interruption preconditon in smtravel class
+	
+	public void startingEvent() {
+		
+	}
+	
+	protected double duration() {
+		return Constants.EWTVOICEDURATION;
+	}
+	
+	public int interruptionPreCond(){  // added the smtravel model for interruption preconditon in smtravel class
+		int interruptID = 0;
+		if(model.udp.GetOperatorToServe() == -1 && model.udp.GetCallToServe() == -1) 
+			interruptID = 1;
+		
+		return interruptID;
+	}
+	public void interruptionSCS(int interruptID){
+		interruptID = interruptionPreCond();
+		if (interruptID == 1) {
+			model.qCallLine.get(icCall.uType).add(icCall);
+			model.spTerminate();
+		}
+	}
+	protected void terminatingEvent() {
+	 icCall.waitTime = CalculateWaitTime(icCall.uType);
+		if(model.rvp.uWaitTmTolerance(icCall.uType) < icCall.waitTime) {
+			model.spLeave(icCall);
+		}
+		else {
+			model.qCallLine.get(icCall.uType).add(icCall);
+		}
+	}
+
+ /*------------------------------------   Embedded UDPs   ----------------------------------------------*/
+	/* Method: CalculateWaitTime
+	 * Description: Calculates the wait time of the customer call
+	 * Parameter: Customer Type
+	 * Return: the wait time
+	 */
+	public double CalculateWaitTime(int uType) {
+		
+		icCall.waitTime = -1; //// not sure about this, we don't have wait time anywhere
+		if(uType == Constants.REGULAR) {
+			icCall.waitTime = Constants.EWTDURATION * model.qCallLine.get(Constants.GOLD).size() + model.qCallLine.get(Constants.SILVER).size() + model.qCallLine.get(Constants.REGULAR).size();
+		}
+		if(uType == Constants.SILVER) {
+			icCall.waitTime = Constants.EWTDURATION * model.qCallLine.get(Constants.GOLD).size() + model.qCallLine.get(Constants.SILVER).size();
+		}
+		if(uType == Constants.GOLD) {
+			icCall.waitTime = Constants.EWTDURATION * model.qCallLine.get(Constants.GOLD).size();
+		}
+		
+		return icCall.waitTime;
+	}	
+	
+	/* Method: CheckEmptyQueue
+	 * Description: checks the queue to find empty place
+	 * Parameter: Customer Type
+	 * Return: true if there is empty spot, false otherwise
+	 */
+	public boolean CheckEmptyQueue(Call icCall){
+		if(model.qCallLine.get(icCall.uType).isEmpty())
+			return true;
+		else
+			return false;
+		
+	}
+
+
+}
